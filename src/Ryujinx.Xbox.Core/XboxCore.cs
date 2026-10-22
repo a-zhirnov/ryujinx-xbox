@@ -82,6 +82,9 @@ namespace Ryujinx.Xbox.Core
                 _libHacHorizonManager.InitializeSystemClients();
 
                 _contentManager = new ContentManager(_virtualFileSystem);
+                // Horizon services (e.g. ngc) mount system data while the Switch is constructed, before the
+                // loader would populate the content storages; the desktop UI loads them early for the same reason.
+                _contentManager.LoadEntries();
                 _accountManager = new AccountManager(_libHacHorizonManager.RyujinxClient);
                 _userChannelPersistence = new UserChannelPersistence();
 
