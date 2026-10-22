@@ -1,0 +1,47 @@
+# Stage 0 toolchain check: pack LibHac from source, then build Ryujinx for Windows x64.
+name: Build core
+
+on:
+  push:
+    branches: [xbox]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  # LibHac source mirror of git.ryujinx.app/projects/LibHac. aa8a40f is the last commit
+  # before 2026-09; code-wise it matches 0.21.0-alpha.133, which Directory.Packages.props pins.
+  LIBHAC_REPO: https://starforgejo.dev/archive/LibHac_Ryubing.git
+  LIBHAC_SHA: aa8a40f410f7b9fc7b6eee5107bf66821d0ecef6
+  LIBHAC_VERSION: 0.21.0-alpha.133
+  DOTNET_CLI_TELEMETRY_OPTOUT: 1
+  DOTNET_NOLOGO: 1
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Pack LibHac from source
+        shell: bash
+        run: |
+          git init -q libhac && cd libhac
+          git fetch -q --depth 1 "$LIBHAC_REPO" "$LIBHAC_SHA"
+          git checkout -q FETCH_HEAD
+          dotnet pack src/LibHac/LibHac.csproj -c Release \
+            -p:Version="$LIBHAC_VERSION" -p:ContinuousIntegrationBuild=true \
+            -o "$GITHUB_WORKSPACE/localfeed"
+          ls -la "$GITHUB_WORKSPACE/localfeed"
+
+      - name: Build Ryujinx (win-x64)
+        run: dotnet publish -c Release -r win-x64 -o publish -p:ExtraDefineConstants=DISABLE_UPDATER -p:DebugType=embedded src/Ryujinx --self-contained
+
+      - name: Size report
+        shell: bash
+        run: du -sh publish && ls publish | head -50
