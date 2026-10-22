@@ -30,8 +30,9 @@ jobs:
 
       - name: Pack LibHac from source
         shell: bash
+        # Outside the workspace: Ryujinx's Directory.Packages.props would otherwise apply to LibHac.
         run: |
-          git init -q libhac && cd libhac
+          git init -q "$RUNNER_TEMP/libhac" && cd "$RUNNER_TEMP/libhac"
           git fetch -q --depth 1 "$LIBHAC_REPO" "$LIBHAC_SHA"
           git checkout -q FETCH_HEAD
           dotnet pack src/LibHac/LibHac.csproj -c Release \
