@@ -97,7 +97,11 @@ namespace ARMeilleure.Translation
 
         public virtual Operand Call(MethodInfo info, params Operand[] callArgs)
         {
-            nint funcPtr = info.MethodHandle.GetFunctionPointer();
+            // Registered helpers come from the Delegates table, which also works under NativeAOT.
+            if (!Delegates.TryGetDelegateFuncPtr(info, out nint funcPtr))
+            {
+                funcPtr = info.MethodHandle.GetFunctionPointer();
+            }
 
             OperandType returnType = GetOperandType(info.ReturnType);
 
