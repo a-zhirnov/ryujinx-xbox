@@ -25,7 +25,8 @@ namespace Ryujinx.Common
 
         public static bool IsReleaseBuild => IsValid && ReleaseChannelName.Equals(ReleaseChannel);
 
-        public static string Version => IsValid ? BuildVersion : Assembly.GetEntryAssembly()!.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+        // A NativeAOT library host (the Xbox core) has no managed entry assembly.
+        public static string Version => IsValid ? BuildVersion : (Assembly.GetEntryAssembly() ?? typeof(ReleaseInformation).Assembly).GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
 
         public static string GetChangelogUrl(Version currentVersion, Version newVersion) =>
             IsCanaryBuild

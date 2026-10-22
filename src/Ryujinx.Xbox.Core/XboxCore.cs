@@ -57,6 +57,7 @@ namespace Ryujinx.Xbox.Core
                 _uptime.Restart();
 
                 string baseDir = Marshal.PtrToStringUTF8((nint)baseDirUtf8);
+                Directory.CreateDirectory(baseDir);
                 AppDataManager.Initialize(baseDir);
 
                 Logger.SetEnable(LogLevel.Debug, false);
