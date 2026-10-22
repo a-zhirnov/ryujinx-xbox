@@ -1,0 +1,35 @@
+# Pulls the official Ryubing source and hands it over as a git bundle artifact.
+# git.ryujinx.app is unreachable from the dev machine, so the runner fetches it.
+name: Fetch Ryubing upstream
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Upstream branch or tag (empty = default branch)
+        default: ''
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone upstream
+        env:
+          REF: ${{ inputs.ref }}
+        run: |
+          git clone ${REF:+--branch "$REF"} https://git.ryujinx.app/ryubing/ryujinx.git upstream
+          cd upstream
+          git log -1 --format='%H %ci %s' | tee ../upstream-head.txt
+          git bundle create ../ryubing.bundle --all
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ryubing-upstream
+          path: |
+            ryubing.bundle
+            upstream-head.txt
+          retention-days: 3
