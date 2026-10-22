@@ -1,4 +1,4 @@
-# Stage 0 toolchain check: pack LibHac from source, then build Ryujinx for Windows x64.
+# Stage 0: build the NativeAOT core, run the probe homebrew through it on a Windows runner and report memory.
 name: Build core
 
 on:
@@ -19,7 +19,25 @@ env:
   DOTNET_NOLOGO: 1
 
 jobs:
-  build:
+  probe:
+    runs-on: ubuntu-latest
+    container: devkitpro/devkita64:latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: xbox/homebrew
+
+      - name: Build xbc-probe.nro
+        run: make -C xbox/homebrew/xbc-probe
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: xbc-probe
+          path: xbox/homebrew/xbc-probe/xbc-probe.nro
+          retention-days: 7
+
+  core:
+    needs: probe
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -38,11 +56,35 @@ jobs:
           dotnet pack src/LibHac/LibHac.csproj -c Release \
             -p:Version="$LIBHAC_VERSION" -p:ContinuousIntegrationBuild=true \
             -o "$GITHUB_WORKSPACE/localfeed"
-          ls -la "$GITHUB_WORKSPACE/localfeed"
 
-      - name: Build Ryujinx (win-x64)
-        run: dotnet publish -c Release -r win-x64 -o publish -p:ExtraDefineConstants=DISABLE_UPDATER -p:DebugType=embedded src/Ryujinx --self-contained
+      - name: Publish core (NativeAOT, win-x64)
+        run: dotnet publish src/Ryujinx.Xbox.Core -c Release -r win-x64 -o core-out
 
-      - name: Size report
+      - uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Build corehost
+        run: cl /nologo /O2 /W3 xbox\corehost\corehost.c /Fe:core-out\corehost.exe
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: xbc-probe
+          path: probe
+
+      - name: Run probe (host mapped unsafe)
         shell: bash
-        run: du -sh publish && ls publish | head -50
+        run: core-out/corehost.exe "$PWD/core-out/Ryujinx.Xbox.Core.dll" "$RUNNER_TEMP/xbc-data" "$PWD/probe/xbc-probe.nro" 45 2 | tee run-mode2.txt
+
+      - name: Run probe (software page table)
+        if: always()
+        shell: bash
+        run: core-out/corehost.exe "$PWD/core-out/Ryujinx.Xbox.Core.dll" "$RUNNER_TEMP/xbc-data-sw" "$PWD/probe/xbc-probe.nro" 60 0 | tee run-mode0.txt
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: xbc-core-win-x64
+          path: |
+            core-out/Ryujinx.Xbox.Core.dll
+            core-out/corehost.exe
+            run-mode*.txt
+          retention-days: 7
