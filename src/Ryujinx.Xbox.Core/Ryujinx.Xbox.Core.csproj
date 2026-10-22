@@ -6,7 +6,8 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <PublishAot>true</PublishAot>
     <NativeLib>Shared</NativeLib>
-    <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- EmbeddedResources walks satellite assemblies (e.g. "af"), which invariant mode rejects. -->
+    <InvariantGlobalization>false</InvariantGlobalization>
     <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
     <OptimizationPreference>Speed</OptimizationPreference>
     <DefaultItemExcludes>$(DefaultItemExcludes);._*</DefaultItemExcludes>
