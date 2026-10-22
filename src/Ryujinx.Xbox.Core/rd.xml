@@ -1,0 +1,14 @@
+<!--
+  NativeAOT runtime directives for the Xbox core.
+  ARMeilleure emits calls to managed helpers (NativeInterface, SoftFallback, SoftFloat, MathHelper...) using
+  MethodInfo.MethodHandle.GetFunctionPointer(); nothing references them statically, so without this NativeAOT
+  generates no code for them ("no code was generated for it").
+-->
+<Directives xmlns="http://schemas.microsoft.com/netfx/2013/01/metadata">
+  <Application>
+    <Assembly Name="ARMeilleure" Dynamic="Required All" />
+    <Assembly Name="Ryujinx.Cpu" Dynamic="Required All" />
+    <Assembly Name="Ryujinx.HLE" Dynamic="Required All" />
+    <Assembly Name="Ryujinx.Horizon" Dynamic="Required All" />
+  </Application>
+</Directives>

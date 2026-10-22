@@ -66,6 +66,7 @@ namespace Ryujinx.Xbox.Core
                 Logger.SetEnable(LogLevel.Warning, true);
                 Logger.SetEnable(LogLevel.Error, true);
                 Logger.SetEnable(LogLevel.Guest, true);
+                Logger.SetEnable(LogLevel.Trace, false);
                 Logger.AddTarget(_logRing);
 
                 FileStream logFile = FileLogTarget.PrepareLogFile(Path.Combine(AppDataManager.BaseDirPath, "Logs"));

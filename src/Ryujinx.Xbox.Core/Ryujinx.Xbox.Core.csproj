@@ -32,4 +32,8 @@
     <TrimmerRootAssembly Include="LibHac" />
   </ItemGroup>
 
+  <ItemGroup>
+    <RdXmlFile Include="rd.xml" />
+  </ItemGroup>
+
 </Project>
