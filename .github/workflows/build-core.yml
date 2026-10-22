@@ -46,7 +46,22 @@ jobs:
         with:
           global-json-file: global.json
 
+      - name: Cache LibHac package
+        id: libhac-cache
+        uses: actions/cache@v4
+        with:
+          path: localfeed
+          key: libhac-${{ env.LIBHAC_SHA }}-${{ env.LIBHAC_VERSION }}
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props', 'global.json') }}
+          restore-keys: nuget-${{ runner.os }}-
+
       - name: Pack LibHac from source
+        if: steps.libhac-cache.outputs.cache-hit != 'true'
         shell: bash
         # Outside the workspace: Ryujinx's Directory.Packages.props would otherwise apply to LibHac.
         run: |
@@ -71,10 +86,12 @@ jobs:
           path: probe
 
       - name: Run probe (host mapped unsafe)
+        timeout-minutes: 5
         shell: bash
         run: core-out/corehost.exe "$PWD/core-out/Ryujinx.Xbox.Core.dll" "$RUNNER_TEMP/xbc-data" "$PWD/probe/xbc-probe.nro" 45 2 | tee run-mode2.txt
 
       - name: Run probe (software page table)
+        timeout-minutes: 5
         if: always()
         shell: bash
         run: core-out/corehost.exe "$PWD/core-out/Ryujinx.Xbox.Core.dll" "$RUNNER_TEMP/xbc-data-sw" "$PWD/probe/xbc-probe.nro" 60 0 | tee run-mode0.txt

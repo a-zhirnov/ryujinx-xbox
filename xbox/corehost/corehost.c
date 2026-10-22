@@ -25,6 +25,27 @@ typedef void (*xbc_get_stats_fn)(xbc_stats *stats);
 typedef int (*xbc_read_log_fn)(char *buffer, int capacity);
 typedef void (*xbc_shutdown_fn)(void);
 
+static xbc_read_log_fn g_read_log;
+static int g_watchdog_seconds;
+
+static void dump_log(void)
+{
+    static char log[1 << 20];
+    int n = g_read_log(log, sizeof(log) - 1);
+    log[n] = 0;
+    printf("----- core log (tail) -----\n%s\n", log);
+}
+
+// The core can hang inside guest code or on shutdown; never let CI wait for it.
+static DWORD WINAPI watchdog(LPVOID unused)
+{
+    (void)unused;
+    Sleep(g_watchdog_seconds * 1000);
+    printf("!!! watchdog: no exit after %d s, dumping log and terminating\n", g_watchdog_seconds);
+    dump_log();
+    ExitProcess(9);
+}
+
 static void print_stats(const char *label, xbc_stats *s)
 {
     printf("[%s] t=%lldms private=%lldMB ws=%lldMB peak=%lldMB managed=%lldMB markers=%d\n", label,
@@ -60,6 +81,11 @@ int main(int argc, char **argv)
         return 4;
     }
 
+    setvbuf(stdout, NULL, _IONBF, 0);
+    g_read_log = read_log;
+    g_watchdog_seconds = atoi(argv[4]) + 30;
+    CreateThread(NULL, 0, watchdog, NULL, 0, NULL);
+
     xbc_stats stats;
     int rc = init(argv[2]);
     get_stats(&stats);
@@ -80,11 +106,10 @@ int main(int argc, char **argv)
         print_stats("run", &stats);
     }
 
-dump:;
-    static char log[1 << 20];
-    int n = read_log(log, sizeof(log) - 1);
-    log[n] = 0;
-    printf("----- core log (tail) -----\n%s\n", log);
+dump:
+    dump_log();
+    printf("shutting down\n");
     shutdown();
+    printf("shutdown done\n");
     return rc != 0 ? 1 : 0;
 }
