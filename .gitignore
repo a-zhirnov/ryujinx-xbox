@@ -192,3 +192,7 @@ distribution/macos/output/
 # ryujinx-xbox CI scratch
 localfeed/
 libhac/
+
+# Console secrets (prod.keys, title.keys, firmware dumps) never go into the repo
+*.keys
+Firmware*.zip
