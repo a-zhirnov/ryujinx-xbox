@@ -1,3 +1,4 @@
+using Ryujinx.Common.Logging;
 using Ryujinx.Horizon.Arp;
 using Ryujinx.Horizon.Audio;
 using Ryujinx.Horizon.Bcat;
@@ -17,6 +18,8 @@ using Ryujinx.Horizon.Srepo;
 using Ryujinx.Horizon.Usb;
 using Ryujinx.Horizon.Wlan;
 using System.Collections.Generic;
+using System.IO;
+using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace Ryujinx.Horizon
@@ -64,9 +67,13 @@ namespace Ryujinx.Horizon
             return entries;
         }
 
-        internal void SignalServiceReady()
+        internal void SignalServiceReady([CallerFilePath] string caller = "")
         {
-            if (Interlocked.Increment(ref _readyServices) == _totalServices)
+            int ready = Interlocked.Increment(ref _readyServices);
+
+            Logger.Info?.Print(LogClass.Service, $"Horizon service ready: {Path.GetFileNameWithoutExtension(caller)} ({ready}/{_totalServices})");
+
+            if (ready == _totalServices)
             {
                 _servicesReadyEvent.Set();
             }

@@ -92,7 +92,6 @@ jobs:
 
       - name: Run probe (software page table)
         timeout-minutes: 5
-        if: always()
         shell: bash
         run: core-out/corehost.exe "$PWD/core-out/Ryujinx.Xbox.Core.dll" "$RUNNER_TEMP/xbc-data-sw" "$PWD/probe/xbc-probe.nro" 60 0 | tee run-mode0.txt
 

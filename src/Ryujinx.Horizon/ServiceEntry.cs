@@ -1,3 +1,4 @@
+using Ryujinx.Common.Logging;
 using Ryujinx.Horizon.Common;
 using Ryujinx.Memory;
 using System;
@@ -23,7 +24,18 @@ namespace Ryujinx.Horizon
         {
             HorizonStatic.Register(_options, syscallApi, addressSpace, threadContext, (int)threadContext.GetX(1));
 
-            _entrypoint(_serviceTable);
+            Logger.Info?.Print(LogClass.Service, $"Horizon service starting: {Name}");
+
+            try
+            {
+                _entrypoint(_serviceTable);
+            }
+            catch (Exception ex)
+            {
+                // Otherwise a failing service silently leaves WaitServicesReady() blocked forever.
+                Logger.Error?.Print(LogClass.Service, $"Horizon service {Name} failed: {ex}");
+                throw;
+            }
         }
     }
 }
