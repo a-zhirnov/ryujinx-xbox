@@ -88,7 +88,9 @@ jobs:
       - name: Run probe (host mapped unsafe)
         timeout-minutes: 5
         shell: bash
-        run: core-out/corehost.exe "$PWD/core-out/Ryujinx.Xbox.Core.dll" "$RUNNER_TEMP/xbc-data" "$PWD/probe/xbc-probe.nro" 45 2 | tee run-mode2.txt
+        env:
+          XBC_TRACE: '1'
+        run: core-out/corehost.exe "$PWD/core-out/Ryujinx.Xbox.Core.dll" "$RUNNER_TEMP/xbc-data" "$PWD/probe/xbc-probe.nro" 20 2 | tee run-mode2.txt
 
       - name: Run probe (software page table)
         timeout-minutes: 5
@@ -103,4 +105,5 @@ jobs:
             core-out/Ryujinx.Xbox.Core.dll
             core-out/corehost.exe
             run-mode*.txt
+            ${{ runner.temp }}/xbc-data/Logs
           retention-days: 7

@@ -60,13 +60,15 @@ namespace Ryujinx.Xbox.Core
                 Directory.CreateDirectory(baseDir);
                 AppDataManager.Initialize(baseDir);
 
-                Logger.SetEnable(LogLevel.Debug, false);
-                Logger.SetEnable(LogLevel.Stub, false);
+                // XBC_TRACE=1 logs every IPC call and stub: enough to see where a guest is stuck.
+                bool trace = Environment.GetEnvironmentVariable("XBC_TRACE") == "1";
+                Logger.SetEnable(LogLevel.Debug, trace);
+                Logger.SetEnable(LogLevel.Stub, trace);
                 Logger.SetEnable(LogLevel.Info, true);
                 Logger.SetEnable(LogLevel.Warning, true);
                 Logger.SetEnable(LogLevel.Error, true);
                 Logger.SetEnable(LogLevel.Guest, true);
-                Logger.SetEnable(LogLevel.Trace, false);
+                Logger.SetEnable(LogLevel.Trace, trace);
                 Logger.AddTarget(_logRing);
 
                 FileStream logFile = FileLogTarget.PrepareLogFile(Path.Combine(AppDataManager.BaseDirPath, "Logs"));
