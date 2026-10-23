@@ -17,6 +17,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using Switch = Ryujinx.HLE.Switch;
 
 namespace Ryujinx.Xbox.Core
@@ -36,6 +37,8 @@ namespace Ryujinx.Xbox.Core
         private static AccountManager _accountManager;
         private static UserChannelPersistence _userChannelPersistence;
         private static Switch _device;
+        private static Thread _gpuThread;
+        private static volatile bool _gpuRunning;
 
         [StructLayout(LayoutKind.Sequential)]
         public struct XbcStats
@@ -157,12 +160,52 @@ namespace Ryujinx.Xbox.Core
                     return -2;
                 }
 
+                // Guest CPU threads block in WaitUntilGpuReady() until a GPU thread initializes the shader cache,
+                // exactly like the desktop render loop does.
+                _gpuRunning = true;
+                _gpuThread = new Thread(GpuLoop) { Name = "XBC.GpuThread", IsBackground = true };
+                _gpuThread.Start();
+
                 return 0;
             }
             catch (Exception ex)
             {
                 Report("xbc_load", ex);
                 return -1;
+            }
+        }
+
+        /// <summary>Headless stand-in for the desktop render loop: no presentation, but the GPU keeps processing commands.</summary>
+        private static void GpuLoop()
+        {
+            try
+            {
+                _device.Gpu.Renderer.Initialize(GraphicsDebugLevel.None);
+
+                _device.Gpu.Renderer.RunLoop(() =>
+                {
+                    _device.Gpu.SetGpuThread();
+                    _device.Gpu.InitializeShaderCache(CancellationToken.None);
+
+                    Logger.Notice.Print(LogClass.Application, "xbc: GPU ready");
+
+                    while (_gpuRunning)
+                    {
+                        if (_device.WaitFifo())
+                        {
+                            _device.ProcessFrame();
+                        }
+
+                        while (_device.ConsumeFrameAvailable())
+                        {
+                            _device.PresentFrame(static () => { });
+                        }
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                Report("gpu thread", ex);
             }
         }
 
@@ -228,6 +271,8 @@ namespace Ryujinx.Xbox.Core
         {
             try
             {
+                _gpuRunning = false;
+                _gpuThread?.Join(TimeSpan.FromSeconds(5));
                 _device?.Dispose();
                 _device = null;
                 Logger.Shutdown();
