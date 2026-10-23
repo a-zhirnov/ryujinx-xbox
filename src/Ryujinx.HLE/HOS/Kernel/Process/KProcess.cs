@@ -81,6 +81,21 @@ namespace Ryujinx.HLE.HOS.Kernel.Process
 
         private readonly LinkedList<KThread> _threads;
 
+        /// <summary>Copy of the thread list, for diagnostics.</summary>
+        public KThread[] GetThreadsSnapshot()
+        {
+            KernelContext.CriticalSection.Enter();
+
+            try
+            {
+                return [.. _threads];
+            }
+            finally
+            {
+                KernelContext.CriticalSection.Leave();
+            }
+        }
+
         public bool IsPaused { get; private set; }
 
         private long _totalTimeRunning;

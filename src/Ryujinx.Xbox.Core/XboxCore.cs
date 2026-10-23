@@ -200,6 +200,29 @@ namespace Ryujinx.Xbox.Core
             return length;
         }
 
+        /// <summary>Logs every process and guest thread (state, PC, run time) to see where emulation is stuck.</summary>
+        [UnmanagedCallersOnly(EntryPoint = "xbc_debug_dump", CallConvs = [typeof(CallConvCdecl)])]
+        public static void DebugDump()
+        {
+            try
+            {
+                if (_device == null)
+                {
+                    _logRing.Add("xbc: debug dump: no device");
+                    return;
+                }
+
+                foreach (string line in _device.DescribeKernelState())
+                {
+                    _logRing.Add($"xbc: {line}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Report("xbc_debug_dump", ex);
+            }
+        }
+
         [UnmanagedCallersOnly(EntryPoint = "xbc_shutdown", CallConvs = [typeof(CallConvCdecl)])]
         public static void Shutdown()
         {

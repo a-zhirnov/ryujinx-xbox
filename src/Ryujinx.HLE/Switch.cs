@@ -8,12 +8,15 @@ using Ryujinx.Cpu;
 using Ryujinx.Graphics.Gpu;
 using Ryujinx.HLE.FileSystem;
 using Ryujinx.HLE.HOS;
+using Ryujinx.HLE.HOS.Kernel.Process;
+using Ryujinx.HLE.HOS.Kernel.Threading;
 using Ryujinx.HLE.HOS.Services.Apm;
 using Ryujinx.HLE.HOS.Services.Hid;
 using Ryujinx.HLE.Loaders.Processes;
 using Ryujinx.HLE.UI;
 using Ryujinx.Memory;
 using System;
+using System.Collections.Generic;
 
 namespace Ryujinx.HLE
 {
@@ -109,6 +112,25 @@ namespace Ryujinx.HLE
 #pragma warning restore IDE0055
 
             Shared = this;
+        }
+
+        /// <summary>One line per process and guest thread (state, PC, run time), for diagnosing stuck emulation.</summary>
+        public List<string> DescribeKernelState()
+        {
+            List<string> lines = [];
+
+            foreach (KProcess process in System.KernelContext.Processes.Values)
+            {
+                lines.Add($"process {process.Name} pid={process.Pid} state={process.State}");
+
+                foreach (KThread thread in process.GetThreadsSnapshot())
+                {
+                    lines.Add($"  thread {thread.ThreadUid} host={thread.HostThread?.Name}/{thread.HostThread?.ThreadState} " +
+                              $"sched={thread.SchedFlags} core={thread.CurrentCore} pc=0x{thread.Context?.Pc:x} ran={thread.TotalTimeRunning}");
+                }
+            }
+
+            return lines;
         }
 
         public void ProcessFrame()
