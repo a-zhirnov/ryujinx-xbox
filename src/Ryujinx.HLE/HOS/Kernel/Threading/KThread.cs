@@ -55,6 +55,9 @@ namespace Ryujinx.HLE.HOS.Kernel.Threading
         
         public bool IsThreadNamed { get; set; }
 
+        /// <summary>Diagnostics: 0 = waiting for first schedule, 1 = scheduled, 2 = executing guest code.</summary>
+        public int DebugStage { get; private set; }
+
         private long _totalTimeRunning;
 
         public long TotalTimeRunning => _totalTimeRunning;
@@ -1302,6 +1305,7 @@ namespace Ryujinx.HLE.HOS.Kernel.Threading
         private void ThreadStart()
         {
             _schedulerWaitEvent.Wait();
+            DebugStage = 1;
             DebugHalt.Reset();
             KernelStatic.SetKernelContext(KernelContext, this);
 
@@ -1315,6 +1319,7 @@ namespace Ryujinx.HLE.HOS.Kernel.Threading
             }
             else
             {
+                DebugStage = 2;
                 Owner.Context.Execute(Context, _entrypoint);
             }
 

@@ -78,6 +78,8 @@ namespace ARMeilleure.Translation
 
         public void Execute(State.ExecutionContext context, ulong address)
         {
+            JitDiagnostics.OnExecuteEntered();
+
             if (Interlocked.Increment(ref _threadCount) == 1)
             {
                 if (_ptc.State == PtcState.Enabled)
@@ -122,6 +124,8 @@ namespace ARMeilleure.Translation
             Statistics.InitializeTimer();
 
             NativeInterface.RegisterThread(context, Memory, this);
+
+            JitDiagnostics.OnExecuteLoopEntered();
 
             if (Optimizations.EnableDebugging)
             {
@@ -247,6 +251,8 @@ namespace ARMeilleure.Translation
 
         internal TranslatedFunction Translate(ulong address, ExecutionMode mode, bool highCq, bool singleStep = false, bool pptcTranslation = false)
         {
+            JitDiagnostics.OnTranslationStarted(address);
+
             ArmEmitterContext context = new(
                 Memory,
                 CountTable,
@@ -313,6 +319,8 @@ namespace ARMeilleure.Translation
             GuestFunction func = compiledFunc.MapWithPointer<GuestFunction>(JitCache, out nint funcPointer);
 
             Allocators.ResetAll();
+
+            JitDiagnostics.OnTranslationCompleted();
 
             return new TranslatedFunction(func, funcPointer, counter, funcSize, highCq);
         }

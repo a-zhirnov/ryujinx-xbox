@@ -1,3 +1,4 @@
+using ARMeilleure.Diagnostics;
 using LibHac.Common;
 using LibHac.Ns;
 using Ryujinx.Audio.Backends.CompatLayer;
@@ -126,9 +127,13 @@ namespace Ryujinx.HLE
                 foreach (KThread thread in process.GetThreadsSnapshot())
                 {
                     lines.Add($"  thread {thread.ThreadUid} host={thread.HostThread?.Name}/{thread.HostThread?.ThreadState} " +
-                              $"sched={thread.SchedFlags} core={thread.CurrentCore} pc=0x{thread.Context?.Pc:x} ran={thread.TotalTimeRunning}");
+                              $"sched={thread.SchedFlags} core={thread.CurrentCore} stage={thread.DebugStage} pc=0x{thread.Context?.Pc:x} ran={thread.TotalTimeRunning}");
                 }
             }
+
+            lines.Add($"jit execute={JitDiagnostics.ExecuteEntered}/{JitDiagnostics.ExecuteLoopEntered} " +
+                      $"translations={JitDiagnostics.TranslationsStarted}/{JitDiagnostics.TranslationsCompleted} " +
+                      $"last=0x{JitDiagnostics.LastTranslationAddress:x}");
 
             return lines;
         }
