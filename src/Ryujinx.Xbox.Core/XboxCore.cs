@@ -50,7 +50,13 @@ namespace Ryujinx.Xbox.Core
             public long UptimeMs;
             public int Running;
             public int GuestMarkers;
+            public long FramesProcessed;
+            public long FramesPresented;
         }
+
+        // GPU work the guest submitted and frames it presented: a game that got as far as drawing.
+        private static long _framesProcessed;
+        private static long _framesPresented;
 
         [UnmanagedCallersOnly(EntryPoint = "xbc_init", CallConvs = [typeof(CallConvCdecl)])]
         public static int Init(byte* baseDirUtf8)
@@ -101,6 +107,26 @@ namespace Ryujinx.Xbox.Core
             catch (Exception ex)
             {
                 Report("xbc_init", ex);
+                return -1;
+            }
+        }
+
+        /// <summary>Installs the system firmware from a dump (.zip or folder) of the user's own console.</summary>
+        /// <returns>0, or -1 when it failed (the log says why).</returns>
+        [UnmanagedCallersOnly(EntryPoint = "xbc_install_firmware", CallConvs = [typeof(CallConvCdecl)])]
+        public static int InstallFirmware(byte* pathUtf8)
+        {
+            try
+            {
+                string path = Marshal.PtrToStringUTF8((nint)pathUtf8);
+                _contentManager.InstallFirmware(path);
+                _contentManager.LoadEntries();
+                Logger.Notice.Print(LogClass.Application, $"xbc: firmware {_contentManager.GetCurrentFirmwareVersion()?.VersionString ?? "?"} installed from {path}");
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                Report("xbc_install_firmware", ex);
                 return -1;
             }
         }
@@ -194,11 +220,13 @@ namespace Ryujinx.Xbox.Core
                         if (_device.WaitFifo())
                         {
                             _device.ProcessFrame();
+                            Interlocked.Increment(ref _framesProcessed);
                         }
 
                         while (_device.ConsumeFrameAvailable())
                         {
                             _device.PresentFrame(static () => { });
+                            Interlocked.Increment(ref _framesPresented);
                         }
                     }
                 });
@@ -217,6 +245,8 @@ namespace Ryujinx.Xbox.Core
             stats->ManagedHeap = GC.GetTotalMemory(false);
             stats->Running = _device != null ? 1 : 0;
             stats->GuestMarkers = _logRing.GuestMarkers;
+            stats->FramesProcessed = Interlocked.Read(ref _framesProcessed);
+            stats->FramesPresented = Interlocked.Read(ref _framesPresented);
 
             try
             {
