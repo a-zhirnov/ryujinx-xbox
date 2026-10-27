@@ -17,6 +17,8 @@ typedef struct
     int64_t uptime_ms;
     int32_t running;
     int32_t guest_markers;
+    int64_t frames_processed;
+    int64_t frames_presented;
 } xbc_stats;
 
 typedef int (*xbc_init_fn)(const char *base_dir);
@@ -52,9 +54,10 @@ static DWORD WINAPI watchdog(LPVOID unused)
 
 static void print_stats(const char *label, xbc_stats *s)
 {
-    printf("[%s] t=%lldms private=%lldMB ws=%lldMB peak=%lldMB managed=%lldMB markers=%d\n", label,
+    printf("[%s] t=%lldms private=%lldMB ws=%lldMB peak=%lldMB managed=%lldMB markers=%d frames=%lld/%lld\n", label,
            (long long)s->uptime_ms, (long long)(s->private_bytes >> 20), (long long)(s->working_set >> 20),
-           (long long)(s->peak_working_set >> 20), (long long)(s->managed_heap >> 20), s->guest_markers);
+           (long long)(s->peak_working_set >> 20), (long long)(s->managed_heap >> 20), s->guest_markers,
+           (long long)s->frames_processed, (long long)s->frames_presented);
     fflush(stdout);
 }
 
