@@ -180,7 +180,17 @@ namespace Ryujinx.Xbox.Core
 
                 Logger.Notice.Print(LogClass.Application, $"xbc: loading {path} (memory manager {(MemoryManagerMode)memoryManagerMode})");
 
-                if (!_device.LoadProgram(path))
+                // Games by their container; anything else (.nro/.nso, the probe) as an executable.
+                // Application id 0: the first application in the file.
+                bool loaded = Path.GetExtension(path).ToLowerInvariant() switch
+                {
+                    ".nsp" => _device.Processes.LoadNsp(path, 0),
+                    ".xci" => _device.Processes.LoadXci(path, 0),
+                    ".nca" => _device.Processes.LoadNca(path),
+                    _ => _device.LoadProgram(path),
+                };
+
+                if (!loaded)
                 {
                     Logger.Error?.Print(LogClass.Application, "xbc: LoadProgram failed");
                     return -2;
